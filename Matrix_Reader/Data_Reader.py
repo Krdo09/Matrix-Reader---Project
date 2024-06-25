@@ -48,7 +48,7 @@ b_img = cv2.bitwise_not(cv2.bitwise_xor(img_gray, vertical_horizontal_lines))
 
 #  Extraemos los contornos de cada celda de la tabla
 contours, hierarchy = cv2.findContours(vertical_horizontal_lines, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-#  Craeamos delimitadores para cada respectivo contorno
+#  Craeamos delimitadores para cada respectivo contorno o rectangulo
 boundingBoxes = [cv2.boundingRect(contour) for contour in contours]
 (contours, boundingBoxes) = zip(*sorted(zip(contours, boundingBoxes), key= lambda x: x[1][1]))
 
@@ -60,7 +60,7 @@ for contour in contours:
         image = cv2.rectangle(img, (x,y), (x+w, y+h), (0,255,0), 2)
         boxes.append([x, y, w, h])
  
-# almacenamos las filas y columnas
+# almacenamos las filas y columnas para combinarlas posteriormente
 rows = []
 colums = []
 heights = [boundingBoxes[i][3] for i in range(len(boundingBoxes))]
@@ -79,7 +79,7 @@ for i in range(1, len(boxes)):
         previous = boxes[i]
         colums.append(boxes[i])
 
-#  Encontramos el total de celdas en cada fila (Posibles lineas de error)
+#  Encontramos el total de celdas en cada fila 
 total_cells = 0
 for i in range(len(rows)):
     if len(rows[i]) > total_cells:
@@ -90,7 +90,7 @@ center = [int(rows[i][j][0] + rows[i][j][2]/2) for j in range(len(rows[i])) if r
 center = np.array(center)
 center.sort()
 
-#  Creamos una lista con las coordenas de las cajas
+#  Creamos una lista con las coordenas de cada caja
 boxes_list = []
 for i in range(len(rows)):
     l = []
@@ -104,7 +104,8 @@ for i in range(len(rows)):
     boxes_list.append(l)
 
 #  Extraemos la información de las celdas
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract' 
+#  Se debe cambiar la ruta de tesseract dependiendo el lugar de la instalación de este
+pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract'
 dataframe_final = []
 for i in range(len(boxes_list)):
     for j in range(len(boxes_list[i])):
@@ -124,21 +125,24 @@ for i in range(len(boxes_list)):
                 if len(out) == 0:
                     out = pytesseract.image_to_string(erosion)
                 s = s +" "+ out.strip()
+            
             dataframe_final.append(s.strip())
 
 
 #  Crear Array con los datos
 array = np.array(dataframe_final)
-
-# Creamos df
+#  Creamos el dataframe
 dataframe = pd.DataFrame(array.reshape(len(rows), total_cells))
 data = dataframe.style.set_properties(align='left')
+print(dataframe)
 
-     
+#  Imagen con el contorno de cada celda
 cv2.imshow('', image)
 cv2.waitKey(0)
 cv2.destroyAllWindows()
 
+#  Aquí se muestra como resolver dicho error, en la celda [1][0]
+#  Aún así con el error, la disminución de tiempo es considerable a digitar cada dato manualmente
+dataframe[1][0] = '10,2'
+dataframe.drop(axis=1, labels=5, inplace=True)
 print(dataframe)
-
-
